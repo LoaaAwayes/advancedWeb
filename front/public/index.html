@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Task Management System"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <title>Task Management System</title>
+    <!-- Include Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#0d89ee',
+              secondary: '#3f37c9',
+              success: '#4cc9f0',
+              danger: '#f72585',
+              warning: '#f8961e',
+              info: '#4895ef',
+              light: '#f8f9fa',
+              dark: '#212529',
+              darkbg: '#1a1a1a',
+              darkcard: '#2c2c2c',
+              darksidebar: '#212121',
+              darkheader: '#1e1e1e',
+              darkborder: '#333333',
+              darktext: '#ffffff',
+              darktextsecondary: '#cccccc',
+              activeblue: '#007bff'
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #2c2c2c;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3a3a3a;
+        border-radius: 5px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #007bff;
+      }
+      
+      /* Additional styles for form elements to match the image */
+      input, select, textarea {
+        background-color: #2c2c2c !important;
+        border-color: #333333 !important;
+        color: white !important;
+      }
+      
+      /* Dashboard stat boxes */
+      .stat-box {
+        background-color: #2c2c2c;
+        border-radius: 6px;
+        padding: 16px;
+        text-align: center;
+      }
+      
+      /* Chart styles */
+      canvas {
+        background-color: transparent !important;
+      }
+    </style>
+  </head>
+  <body class="bg-darkbg text-darktext">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
