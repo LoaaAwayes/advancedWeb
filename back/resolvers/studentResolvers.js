@@ -1,18 +1,16 @@
 const { AuthenticationError, ForbiddenError } = require('apollo-server-express');
 const { checkAuth, checkStudent } = require('../utils/auth');
 
-// Student resolvers
 const studentResolvers = {
   Query: {
-    // Get comprehensive student dashboard data
+ 
     getStudentDashboard: async (_, __, context) => {
-      // Check if user is authenticated
+     
       if (!context.userId) {
         throw new AuthenticationError('Not authenticated. Please log in.');
       }
       
       try {
-        // Check if the user is a student
         const [userCheck] = await context.db.execute(
           'SELECT * FROM users WHERE id = ? AND role = ?',
           [context.userId, 'student']
@@ -24,8 +22,6 @@ const studentResolvers = {
         
         const student = userCheck[0];
         
-        // Get student statistics
-        // Get assigned projects count
         const [assignedProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM project_assignments 
            WHERE student_id = ?`,
@@ -33,7 +29,6 @@ const studentResolvers = {
         );
         const assignedProjects = assignedProjectsResult[0].count;
         
-        // Get completed projects count
         const [completedProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -42,7 +37,6 @@ const studentResolvers = {
         );
         const completedProjects = completedProjectsResult[0].count;
         
-        // Get in-progress projects count
         const [inProgressProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -51,7 +45,7 @@ const studentResolvers = {
         );
         const inProgressProjects = inProgressProjectsResult[0].count;
         
-        // Get assigned tasks count
+    
         const [assignedTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ?`,
@@ -59,7 +53,6 @@ const studentResolvers = {
         );
         const assignedTasks = assignedTasksResult[0].count;
         
-        // Get completed tasks count
         const [completedTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'completed'`,
@@ -67,7 +60,6 @@ const studentResolvers = {
         );
         const completedTasks = completedTasksResult[0].count;
         
-        // Get pending tasks count
         const [pendingTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'pending'`,
@@ -75,7 +67,7 @@ const studentResolvers = {
         );
         const pendingTasks = pendingTasksResult[0].count;
         
-        // Get in-progress tasks count
+       
         const [inProgressTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'in_progress'`,
@@ -83,7 +75,6 @@ const studentResolvers = {
         );
         const inProgressTasks = inProgressTasksResult[0].count;
         
-        // Get assigned projects
         const [projectRows] = await context.db.execute(
           `SELECT p.* FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -92,7 +83,6 @@ const studentResolvers = {
           [context.userId]
         );
         
-        // Get recent tasks
         const [taskRows] = await context.db.execute(
           `SELECT * FROM tasks
            WHERE assigned_to = ?
@@ -101,14 +91,14 @@ const studentResolvers = {
           [context.userId]
         );
         
-        // Get unread messages count
+      
         const [unreadMessagesResult] = await context.db.execute(
           'SELECT COUNT(*) as count FROM messages WHERE receiver_id = ? AND is_read = FALSE',
           [context.userId]
         );
         const unreadMessages = unreadMessagesResult[0].count;
         
-        // Get recent messages
+       
         const [messageRows] = await context.db.execute(
           `SELECT * FROM messages
            WHERE sender_id = ? OR receiver_id = ?
@@ -117,8 +107,6 @@ const studentResolvers = {
           [context.userId, context.userId]
         );
         
-        // Get message threads
-        // Get all users that the current user has exchanged messages with
         const [userRows] = await context.db.execute(
           `SELECT DISTINCT 
             CASE 
@@ -130,16 +118,13 @@ const studentResolvers = {
           [context.userId, context.userId, context.userId]
         );
         
-        // For each user, get the last message and unread count
         const threads = [];
         
         for (const row of userRows) {
           const userId = row.user_id;
           
-          // Skip if user_id is null (could happen if a user was deleted)
           if (!userId) continue;
           
-          // Get user details
           const [userDetails] = await context.db.execute(
             'SELECT * FROM users WHERE id = ?',
             [userId]
@@ -147,7 +132,6 @@ const studentResolvers = {
           
           if (userDetails.length === 0) continue;
           
-          // Get the last message
           const [lastMessageRows] = await context.db.execute(
             `SELECT * FROM messages 
              WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
@@ -155,7 +139,6 @@ const studentResolvers = {
             [context.userId, userId, userId, context.userId]
           );
           
-          // Get unread count
           const [unreadCountRows] = await context.db.execute(
             `SELECT COUNT(*) as count FROM messages 
              WHERE sender_id = ? AND receiver_id = ? AND is_read = FALSE`,
@@ -169,14 +152,12 @@ const studentResolvers = {
           });
         }
         
-        // Sort threads by last message date (most recent first)
         threads.sort((a, b) => {
           if (!a.lastMessage) return 1;
           if (!b.lastMessage) return -1;
           return new Date(b.lastMessage.created_at) - new Date(a.lastMessage.created_at);
         });
         
-        // Construct and return the dashboard data
         return {
           student,
           stats: {

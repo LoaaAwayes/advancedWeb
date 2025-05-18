@@ -21,11 +21,9 @@ function SignUp() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // GraphQL mutation for signup
   const [signupMutation, { loading: mutationLoading }] = useMutation(SIGNUP_MUTATION, {
     onError: (error) => {
       console.error('Signup error:', error);
-      // Extract error message from GraphQL error
       const errorMessage = error.graphQLErrors?.[0]?.message ||
                           error.networkError?.result?.errors?.[0]?.message ||
                           'An error occurred during registration.';
@@ -57,7 +55,6 @@ function SignUp() {
 
     const { username, password, isStudent, universityId } = formData;
 
-    // Validation
     if (!username && !password) {
       setError('Please enter your name and password.');
       setLoading(false);
@@ -94,7 +91,6 @@ function SignUp() {
       return;
     }
 
-    // Only students can sign up
     if (!isStudent) {
       setError('Only students can sign up. Please check the student checkbox.');
       setLoading(false);
@@ -102,7 +98,6 @@ function SignUp() {
     }
 
     try {
-      // Use GraphQL mutation to sign up
       const { data } = await signupMutation({
         variables: {
           username,
@@ -112,15 +107,12 @@ function SignUp() {
       });
 
       if (data && data.signup) {
-        // Success
         setSuccess(true);
 
-        // Refresh data in context if needed
         if (refreshData) {
           refreshData();
         }
 
-        // Redirect to SignIn after a short delay
         setTimeout(() => {
           navigate('/signin');
         }, 1500);

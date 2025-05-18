@@ -9,7 +9,6 @@ function TasksSimple() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Only fetch if we have a token
     if (!token) {
       setLoading(false);
       return;
@@ -19,7 +18,6 @@ function TasksSimple() {
       try {
         setLoading(true);
         
-        // Make a direct API call to get tasks for the current user
         const response = await axios.get('http://localhost:3002/api/student/tasks', {
           headers: {
             Authorization: `Bearer ${token}`
@@ -39,10 +37,8 @@ function TasksSimple() {
 
     fetchTasks();
     
-    // Set up polling every 10 seconds
     const interval = setInterval(fetchTasks, 10000);
     
-    // Clean up on unmount
     return () => clearInterval(interval);
   }, [token, userId]);
 
@@ -98,7 +94,6 @@ function TasksSimple() {
     }
   };
 
-  // Check if user is authenticated
   if (!token) {
     return (
       <div className="text-center py-8 text-white">
@@ -114,7 +109,6 @@ function TasksSimple() {
 
   return (
     <div className="flex flex-col p-6 text-white">
-      {/* Display error if any */}
       {error && (
         <div className="bg-red-600 text-white p-4 mb-6 rounded">
           <h3 className="font-bold">Error fetching tasks:</h3>
@@ -122,12 +116,10 @@ function TasksSimple() {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">My Tasks</h1>
       </div>
 
-      {/* Task Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tasks.length === 0 ? (
           <div className="col-span-full text-center py-8 bg-gray-800 rounded-lg">

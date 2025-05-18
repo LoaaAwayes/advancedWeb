@@ -1,10 +1,10 @@
 const { AuthenticationError, ForbiddenError } = require('apollo-server-express');
 const { checkAuth, checkAdmin } = require('../utils/auth');
 
-// Project resolvers
+
 const projectResolvers = {
   Query: {
-    // Get all projects (admin only)
+ 
     getAllProjects: async (_, __, context) => {
       await checkAdmin(context);
       
@@ -17,13 +17,12 @@ const projectResolvers = {
       }
     },
     
-    // Get a specific project by ID
     getProject: async (_, { id }, context) => {
-      // Check if user is authenticated
+  
       checkAuth(context);
       
       try {
-        // Get the project
+      
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         
         if (projectRows.length === 0) {
@@ -32,7 +31,6 @@ const projectResolvers = {
         
         const project = projectRows[0];
         
-        // If user is not an admin, check if they are assigned to this project
         if (context.userRole !== 'admin') {
           const [assignmentRows] = await context.db.execute(
             'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
@@ -50,14 +48,13 @@ const projectResolvers = {
         throw new Error('Failed to fetch project: ' + error.message);
       }
     },
-    
-    // Get projects by status
+   
     getProjectsByStatus: async (_, { status }, context) => {
-      // Check if user is authenticated
+   
       checkAuth(context);
       
       try {
-        // If user is admin, get all projects with the specified status
+        
         if (context.userRole === 'admin') {
           const [rows] = await context.db.execute(
             'SELECT * FROM projects WHERE status = ? ORDER BY created_at DESC',
@@ -66,7 +63,6 @@ const projectResolvers = {
           return rows;
         } 
         
-        // If user is student, get only their assigned projects with the specified status
         const [rows] = await context.db.execute(
           `SELECT p.* FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -82,13 +78,10 @@ const projectResolvers = {
       }
     },
     
-    // Get projects assigned to the current user (student) or created by (admin)
     getMyProjects: async (_, __, context) => {
-      // Check if user is authenticated
       checkAuth(context);
       
       try {
-        // If user is admin, get projects created by them
         if (context.userRole === 'admin') {
           const [rows] = await context.db.execute(
             'SELECT * FROM projects WHERE created_by = ? ORDER BY created_at DESC',
@@ -97,7 +90,6 @@ const projectResolvers = {
           return rows;
         }
         
-        // If user is student, get projects assigned to them
         const [rows] = await context.db.execute(
           `SELECT p.* FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -113,20 +105,16 @@ const projectResolvers = {
       }
     },
     
-    // Get tasks for a specific project
     getProjectTasks: async (_, { projectId }, context) => {
-      // Check if user is authenticated
       checkAuth(context);
       
       try {
-        // Get the project
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [projectId]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${projectId} not found`);
         }
         
-        // If user is not an admin, check if they are assigned to this project
         if (context.userRole !== 'admin') {
           const [assignmentRows] = await context.db.execute(
             'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
@@ -138,7 +126,6 @@ const projectResolvers = {
           }
         }
         
-        // Get tasks for the project
         const [taskRows] = await context.db.execute(
           'SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at DESC',
           [projectId]
@@ -153,7 +140,6 @@ const projectResolvers = {
   },
   
   Mutation: {
-    // Create a new project (admin only)
     createProject: async (_, { name, description }, context) => {
       await checkAdmin(context);
       
@@ -173,19 +159,16 @@ const projectResolvers = {
       }
     },
     
-    // Update project details (admin only)
     updateProject: async (_, { id, name, description, status }, context) => {
       await checkAdmin(context);
       
       try {
-        // Check if project exists
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${id} not found`);
         }
         
-        // Build the update query dynamically based on provided fields
         let updateQuery = 'UPDATE projects SET ';
         const updateValues = [];
         const updateFields = [];
@@ -205,7 +188,6 @@ const projectResolvers = {
           updateValues.push(status);
         }
         
-        // If no fields to update, return the project as is
         if (updateFields.length === 0) {
           return projectRows[0];
         }
@@ -213,10 +195,8 @@ const projectResolvers = {
         updateQuery += updateFields.join(', ') + ' WHERE id = ?';
         updateValues.push(id);
         
-        // Execute the update
         await context.db.execute(updateQuery, updateValues);
         
-        // Fetch and return the updated project
         const [rows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         return rows[0];
       } catch (error) {
@@ -225,19 +205,17 @@ const projectResolvers = {
       }
     },
     
-    // Delete a project (admin only)
     deleteProject: async (_, { id }, context) => {
       await checkAdmin(context);
       
       try {
-        // Check if project exists
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${id} not found`);
         }
         
-        // Delete the project (cascade will delete assignments and tasks)
+        
         await context.db.execute('DELETE FROM projects WHERE id = ?', [id]);
         
         return {
@@ -255,19 +233,17 @@ const projectResolvers = {
       }
     },
     
-    // Assign a project to a student (admin only)
-    assignProjectToStudent: async (_, { projectId, studentId }, context) => {
+     assignProjectToStudent: async (_, { projectId, studentId }, context) => {
       await checkAdmin(context);
       
       try {
-        // Check if project exists
+       
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [projectId]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${projectId} not found`);
         }
         
-        // Check if student exists and is actually a student
         const [studentRows] = await context.db.execute(
           'SELECT * FROM users WHERE id = ? AND role = ?',
           [studentId, 'student']
@@ -277,7 +253,6 @@ const projectResolvers = {
           throw new Error(`Student with ID ${studentId} not found`);
         }
         
-        // Check if assignment already exists
         const [assignmentRows] = await context.db.execute(
           'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
           [projectId, studentId]
@@ -287,13 +262,11 @@ const projectResolvers = {
           throw new Error(`Student is already assigned to this project`);
         }
         
-        // Create the assignment
         await context.db.execute(
           'INSERT INTO project_assignments (project_id, student_id) VALUES (?, ?)',
           [projectId, studentId]
         );
         
-        // Return the updated project
         return projectRows[0];
       } catch (error) {
         console.error('Error assigning project to student:', error);
@@ -301,19 +274,16 @@ const projectResolvers = {
       }
     },
     
-    // Remove a student from a project (admin only)
     removeStudentFromProject: async (_, { projectId, studentId }, context) => {
       await checkAdmin(context);
       
       try {
-        // Check if project exists
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [projectId]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${projectId} not found`);
         }
         
-        // Check if assignment exists
         const [assignmentRows] = await context.db.execute(
           'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
           [projectId, studentId]
@@ -323,13 +293,11 @@ const projectResolvers = {
           throw new Error(`Student is not assigned to this project`);
         }
         
-        // Remove the assignment
         await context.db.execute(
           'DELETE FROM project_assignments WHERE project_id = ? AND student_id = ?',
           [projectId, studentId]
         );
         
-        // Return the updated project
         return projectRows[0];
       } catch (error) {
         console.error('Error removing student from project:', error);
@@ -337,20 +305,16 @@ const projectResolvers = {
       }
     },
     
-    // Update project status (admin & student)
     updateProjectStatus: async (_, { id, status }, context) => {
-      // Check if user is authenticated
       checkAuth(context);
       
       try {
-        // Check if project exists
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${id} not found`);
         }
         
-        // If user is not an admin, check if they are assigned to this project
         if (context.userRole !== 'admin') {
           const [assignmentRows] = await context.db.execute(
             'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
@@ -362,13 +326,11 @@ const projectResolvers = {
           }
         }
         
-        // Update the project status
         await context.db.execute(
           'UPDATE projects SET status = ? WHERE id = ?',
           [status, id]
         );
         
-        // Fetch and return the updated project
         const [rows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         return rows[0];
       } catch (error) {
@@ -377,25 +339,21 @@ const projectResolvers = {
       }
     },
     
-    // Update project completion percentage (admin & student)
     updateProjectCompletion: async (_, { id, completionPercentage }, context) => {
-      // Check if user is authenticated
       checkAuth(context);
       
       try {
-        // Validate completion percentage
         if (completionPercentage < 0 || completionPercentage > 100) {
           throw new Error('Completion percentage must be between 0 and 100');
         }
         
-        // Check if project exists
+        
         const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         
         if (projectRows.length === 0) {
           throw new Error(`Project with ID ${id} not found`);
         }
         
-        // If user is not an admin, check if they are assigned to this project
         if (context.userRole !== 'admin') {
           const [assignmentRows] = await context.db.execute(
             'SELECT * FROM project_assignments WHERE project_id = ? AND student_id = ?',
@@ -407,13 +365,11 @@ const projectResolvers = {
           }
         }
         
-        // Update the project completion percentage
         await context.db.execute(
           'UPDATE projects SET completion_percentage = ? WHERE id = ?',
           [completionPercentage, id]
         );
         
-        // Automatically update status based on completion percentage
         let newStatus = projectRows[0].status;
         if (completionPercentage === 0) {
           newStatus = 'open';
@@ -423,7 +379,6 @@ const projectResolvers = {
           newStatus = 'in_progress';
         }
         
-        // Update status if it changed
         if (newStatus !== projectRows[0].status) {
           await context.db.execute(
             'UPDATE projects SET status = ? WHERE id = ?',
@@ -431,7 +386,6 @@ const projectResolvers = {
           );
         }
         
-        // Fetch and return the updated project
         const [rows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [id]);
         return rows[0];
       } catch (error) {
@@ -441,10 +395,8 @@ const projectResolvers = {
     }
   },
   
-  // Field resolvers
   Project: {
-    // Resolve the createdBy field to return the admin user who created the project
-    createdBy: async (project, _, context) => {
+       createdBy: async (project, _, context) => {
       if (!project.created_by) return null;
       
       try {
@@ -456,7 +408,7 @@ const projectResolvers = {
       }
     },
     
-    // Resolve the assignedTo field to return the students assigned to the project
+    
     assignedTo: async (project, _, context) => {
       try {
         const [rows] = await context.db.execute(
@@ -472,7 +424,7 @@ const projectResolvers = {
       }
     },
     
-    // Resolve the tasks field to return the tasks for the project
+    
     tasks: async (project, _, context) => {
       try {
         const [rows] = await context.db.execute(
@@ -486,7 +438,6 @@ const projectResolvers = {
       }
     },
     
-    // Map database fields to GraphQL fields
     id: (project) => project.id,
     name: (project) => project.name,
     description: (project) => project.description,

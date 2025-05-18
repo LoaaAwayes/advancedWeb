@@ -7,36 +7,31 @@ function Tasks() {
   const [error, setError] = useState(null);
   const { token, userId, isStudent } = useAuth();
 
-  // Debug log
   console.log('Auth state:', { token, userId, isStudent });
 
-  // Fetch tasks assigned to the current student
   const { data: tasksData, loading, error: queryError } = useQuery(GET_MY_TASKS, {
     fetchPolicy: 'network-only',
-    pollInterval: 10000, // Refresh every 10 seconds to ensure data is up-to-date
+    pollInterval: 10000, 
     context: {
       headers: {
         authorization: token ? `Bearer ${token}` : ''
       }
     },
-    skip: !token, // Skip the query if there's no token
+    skip: !token, 
     onError: (err) => {
       console.error('Error fetching tasks:', err);
       setError(err.message);
     }
   });
 
-  // Update error state when query error changes
   useEffect(() => {
     if (queryError) {
       setError(queryError.message);
     }
   }, [queryError]);
 
-  // Extract tasks from query result
   const myTasks = tasksData?.getMyTasks || [];
 
-  // Debug log for tasks data
   useEffect(() => {
     console.log('Tasks data received:', tasksData);
     console.log('My tasks array:', myTasks);
@@ -100,7 +95,6 @@ function Tasks() {
     }
   };
 
-  // Check if user is authenticated
   if (!token) {
     return (
       <div className="text-center py-8 text-white">
@@ -116,7 +110,6 @@ function Tasks() {
 
   return (
     <div className="flex flex-col p-6 text-white">
-      {/* Display error if any */}
       {error && (
         <div className="bg-red-600 text-white p-4 mb-6 rounded">
           <h3 className="font-bold">Error fetching tasks:</h3>
@@ -124,7 +117,6 @@ function Tasks() {
         </div>
       )}
 
-      {/* Task Cards */}
       <div>
         <h2 className="text-2xl font-bold mb-6">My Assigned Tasks</h2>
 

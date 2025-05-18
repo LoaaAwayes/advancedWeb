@@ -21,12 +21,10 @@ export function AuthProvider({ children }) {
   const [signinMutation] = useMutation(SIGNIN_MUTATION);
   const [signupMutation] = useMutation(SIGNUP_MUTATION);
 
-  // Check if user is logged in on app load
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
 
     if (token) {
-      // Fetch current user data
       client.query({
         query: ME_QUERY,
         fetchPolicy: 'network-only'
@@ -38,7 +36,6 @@ export function AuthProvider({ children }) {
           setIsAdmin(data.me.role === 'admin');
           setIsStudent(data.me.role === 'student');
         } else {
-          // If no user data, clear token
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_info');
         }
@@ -55,7 +52,6 @@ export function AuthProvider({ children }) {
     }
   }, [client]);
 
-  // Sign in function
   const signIn = async (username, password, staySignedIn) => {
     try {
       const { data } = await signinMutation({
@@ -65,7 +61,6 @@ export function AuthProvider({ children }) {
       if (data && data.signin) {
         const { token, user } = data.signin;
 
-        // Save token and user info
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_info', JSON.stringify(user));
 
@@ -95,10 +90,8 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Sign up function
   const signUp = async (username, password, isStudent, universityId) => {
     try {
-      // Only students can sign up
       if (!isStudent) {
         return {
           success: false,
@@ -131,25 +124,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Sign out function
   const signOut = () => {
-    // Remove auth token
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_info');
 
-    // Only remove staySignedIn if not staying signed in
     if (localStorage.getItem('staySignedIn') !== 'true') {
       localStorage.removeItem('staySignedIn');
     }
 
-    // Reset state
     setToken(null);
     setCurrentUser(null);
     setUserId(null);
     setIsAdmin(false);
     setIsStudent(false);
 
-    // Clear Apollo cache
+    
     client.clearStore();
   };
 

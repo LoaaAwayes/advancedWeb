@@ -1,85 +1,147 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import { useQuery, useMutation } from '@apollo/client';
-import { GET_STUDENTS, GET_MY_MESSAGES, SEND_MESSAGE } from '../../graphql/queries';
+import { useQuery } from '@apollo/client';
+import { GET_STUDENTS, GET_MY_MESSAGES } from '../../graphql/queries';
+import { io } from 'socket.io-client';
 
 function Chat() {
-  const { currentUser, userId } = useAuth();
-  const { students, refreshData, loading } = useData();
+  const { userId, token } = useAuth();
+  const { refreshData, loading } = useData();
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [studentMessages, setStudentMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const socket = useRef(null);
+  const pendingMessages = useRef({}); 
 
-  // Query to get students
-  const { data: studentsData } = useQuery(GET_STUDENTS, {
-    fetchPolicy: 'network-only'
-  });
-
-  // Query to get messages with selected student
+  const { data: studentsData } = useQuery(GET_STUDENTS, { fetchPolicy: 'network-only' });
   const { data: messagesData, refetch: refetchMessages } = useQuery(GET_MY_MESSAGES, {
-    variables: { userId: selectedStudentId },
+    variables: { otherUserId: selectedStudentId },
     skip: !selectedStudentId,
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'network-only',
   });
 
-  // Mutation to send message
-  const [sendMessageMutation] = useMutation(SEND_MESSAGE);
-
-  // Load students when component mounts
   useEffect(() => {
     refreshData();
   }, []);
 
-  // Update messages when selected student changes or new messages arrive
   useEffect(() => {
-    if (selectedStudentId && messagesData && messagesData.getMyMessages) {
+    if (selectedStudentId && messagesData?.getMyMessages) {
       setStudentMessages(messagesData.getMyMessages);
       scrollToBottom();
     }
   }, [selectedStudentId, messagesData]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!userId || !token) return;
+
+    socket.current = io('http://localhost:3002', {
+      auth: { token },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socket.current.on('connect', () => {
+      console.log('✅ Connected to chat server');
+    });
+
+    socket.current.on('new_message', (serverMessage) => {
+      // Check if this is one of our pending messages
+      const isPending = Object.values(pendingMessages.current).some(
+        msg => msg.content === serverMessage.content && 
+               new Date(msg.created_at).getTime() - new Date(serverMessage.created_at).getTime() < 1000
+      );
+
+      if (!isPending) {
+        // Only add if it's relevant to current conversation
+        if (
+          Number(serverMessage.sender_id) === Number(selectedStudentId) ||
+          Number(serverMessage.receiver_id) === Number(selectedStudentId)
+        ) {
+          setStudentMessages(prev => [...prev, serverMessage]);
+          scrollToBottom();
+        }
+      }
+    });
+
+    socket.current.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
+
+    socket.current.on('disconnect', () => {
+      console.log('🔴 Disconnected from chat server');
+    });
+
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, [userId, token, selectedStudentId, scrollToBottom]);
 
   const handleSelectStudent = (student) => {
     setSelectedStudent(student.username);
     setSelectedStudentId(student.id);
-    refetchMessages();
+    refetchMessages({ otherUserId: student.id });
   };
 
-  const handleSendMessage = async () => {
-    if (newMessage.trim() && selectedStudentId) {
-      try {
-        await sendMessageMutation({
-          variables: {
-            receiverId: selectedStudentId,
-            content: newMessage.trim()
-          }
-        });
-        setNewMessage('');
-        refetchMessages();
-      } catch (error) {
-        console.error('Error sending message:', error);
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedStudentId || !socket.current?.connected) return;
+
+    const tempId = `temp_${Date.now()}`;
+    const message = {
+      sender_id: Number(userId),
+      receiver_id: Number(selectedStudentId),
+      content: newMessage.trim(),
+      id: tempId,
+      created_at: new Date().toISOString(),
+      is_read: false
+    };
+
+    // Store the pending message
+    pendingMessages.current[tempId] = message;
+    
+    // Optimistic update
+    setStudentMessages(prev => [...prev, message]);
+
+    // Send via socket
+    socket.current.emit('message', {
+      sender_id: message.sender_id,
+      receiver_id: message.receiver_id,
+      content: message.content
+    }, (ack) => {
+      // Remove from pending regardless of success/failure
+      delete pendingMessages.current[tempId];
+
+      if (ack?.error) {
+        console.error('Failed to send message:', ack.error);
+        // Remove optimistic update if failed
+        setStudentMessages(prev => prev.filter(m => m.id !== tempId));
       }
+    });
+
+    setNewMessage('');
+    scrollToBottom();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleSendMessage();
-  };
+  if (loading) return <div style={{ color: 'white' }}>Loading...</div>;
 
-  if (loading || loadingMessages) return <div style={{ color: 'white' }}>Loading...</div>;
-
-  // Get students from GraphQL query
-  const studentsList = studentsData?.getUsers?.filter(user => user.role === 'student') || [];
-
-  const containerStyle = {
+  const studentsList = studentsData?.getUsers?.filter((u) => u.role === 'student') || [];
+const containerStyle = {
     display: 'flex',
     gap: '20px',
     marginTop: '20px',
@@ -124,12 +186,12 @@ function Chat() {
     color: 'white',
     padding: '8px',
     borderRadius: '10px',
-    width: '100%',         // Full width of chat box
+    width: '100%',
     fontSize: '14px',
-    minHeight: '30px',     // Smaller height
+    minHeight: '30px',
     maxHeight: '120px',
     overflowY: 'auto',
-    flexGrow: 0,           // Prevent stretching
+    flexGrow: 0,
   };
 
   const chatInputStyle = {
@@ -154,11 +216,12 @@ function Chat() {
     background: '#02c63d',
     color: 'white',
     border: 'none',
-    cursor: 'pointer',
+    cursor: newMessage.trim() ? 'pointer' : 'not-allowed',
     borderRadius: '5px',
     fontSize: '12px',
     height: '40px',
     width: '70px',
+    opacity: newMessage.trim() ? 1 : 0.5,
   };
 
   const studentStyle = (isActive) => ({
@@ -171,6 +234,7 @@ function Chat() {
     transition: '0.3s',
   });
 
+
   return (
     <div style={containerStyle}>
       <div style={studentListStyle}>
@@ -179,7 +243,7 @@ function Chat() {
           {studentsList.map((student) => (
             <li
               key={student.id}
-              style={studentStyle(selectedStudent === student.username)}
+              style={studentStyle(selectedStudentId === student.id)}
               onClick={() => handleSelectStudent(student)}
             >
               {student.username}
@@ -203,7 +267,7 @@ function Chat() {
                   key={message.id}
                   style={{
                     marginBottom: '10px',
-                    textAlign: message.sender?.role === 'admin' ? 'right' : 'left',
+                    textAlign: message.sender_id === Number(userId) ? 'left' : 'left',
                   }}
                 >
                   <div
@@ -213,9 +277,17 @@ function Chat() {
                       borderRadius: '10px',
                       color: 'white',
                       maxWidth: '80%',
+                      backgroundColor: message.sender_id === Number(userId) ? '#02c63d' : '#02c63d',
+                      whiteSpace: 'pre-wrap',
                     }}
                   >
+                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+        {Number(message.sender_id) === Number(userId) ? 'You:' : 'selectedStudent:'}
+      </div>
                     {message.content}
+                    <div style={{ fontSize: '10px', marginTop: '5px', opacity: 0.7 }}>
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </div>
                   </div>
                 </div>
               ))
@@ -228,21 +300,19 @@ function Chat() {
 
         {selectedStudent && (
           <div style={chatInputStyle}>
-            <input
-              type="text"
+            <textarea
+              rows={2}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="Type your message..."
-              style={inputStyle}
+              style={{ ...inputStyle, resize: 'none' }}
             />
             <button
+              type="button"
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              style={{
-                ...buttonStyle,
-                opacity: newMessage.trim() ? 1 : 0.5,
-              }}
+              style={buttonStyle}
             >
               Send
             </button>

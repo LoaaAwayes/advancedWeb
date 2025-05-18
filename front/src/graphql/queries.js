@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
 
-// Authentication Queries
+// --- Auth Mutations ---
 export const SIGNIN_MUTATION = gql`
   mutation SignIn($username: String!, $password: String!) {
     signin(username: $username, password: $password) {
@@ -26,6 +26,7 @@ export const SIGNUP_MUTATION = gql`
   }
 `;
 
+// --- User Queries ---
 export const ME_QUERY = gql`
   query Me {
     me {
@@ -37,7 +38,6 @@ export const ME_QUERY = gql`
   }
 `;
 
-// Admin Queries
 export const GET_STUDENTS = gql`
   query GetStudents {
     getUsers {
@@ -50,6 +50,7 @@ export const GET_STUDENTS = gql`
   }
 `;
 
+// --- Admin Stats Query ---
 export const GET_ADMIN_STATS = gql`
   query GetAdminStats {
     getAdminStats {
@@ -67,7 +68,7 @@ export const GET_ADMIN_STATS = gql`
   }
 `;
 
-// Project Queries
+// --- Projects Queries ---
 export const GET_ALL_PROJECTS = gql`
   query GetAllProjects {
     getAllProjects {
@@ -144,7 +145,7 @@ export const GET_MY_PROJECTS = gql`
   }
 `;
 
-// Project Mutations
+// --- Projects Mutations ---
 export const CREATE_PROJECT = gql`
   mutation CreateProject($name: String!, $description: String) {
     createProject(name: $name, description: $description) {
@@ -181,7 +182,7 @@ export const UPDATE_PROJECT_COMPLETION = gql`
   }
 `;
 
-// Task Queries
+// --- Tasks Queries ---
 export const GET_PROJECT_TASKS = gql`
   query GetProjectTasks($projectId: ID!) {
     getProjectTasks(projectId: $projectId) {
@@ -197,19 +198,55 @@ export const GET_PROJECT_TASKS = gql`
   }
 `;
 
-// Task Mutations
-export const CREATE_TASK = gql`
-  mutation CreateTask($projectId: ID!, $title: String!, $description: String, $dueDate: String) {
-    createTask(projectId: $projectId, title: $title, description: $description, dueDate: $dueDate) {
+export const GET_MY_TASKS = gql`
+  query GetMyTasks {
+    getMyTasks {
       id
       title
       description
       status
       dueDate
+      project {
+        id
+        name
+      }
+      assignedTo {
+        id
+        username
+      }
     }
   }
 `;
 
+// --- Tasks Mutations ---
+export const CREATE_TASK = gql`
+  mutation CreateTask(
+    $projectId: ID!,
+    $title: String!,
+    $description: String!,
+    $dueDate: String!,
+    $status: String!
+  ) {
+    createTask(
+      projectId: $projectId,
+      title: $title,
+      description: $description,
+      dueDate: $dueDate,
+      status: $status
+    ) {
+      id
+      title
+      description
+      dueDate
+      status
+      assignedTo {
+        id
+        username
+      }
+    }
+  }
+`;
+// --- Tasks Mutations ---
 export const ASSIGN_TASK = gql`
   mutation AssignTaskToStudent($taskId: ID!, $studentId: ID!) {
     assignTaskToStudent(taskId: $taskId, studentId: $studentId) {
@@ -223,6 +260,9 @@ export const ASSIGN_TASK = gql`
   }
 `;
 
+
+
+
 export const UPDATE_TASK_STATUS = gql`
   mutation UpdateTaskStatus($id: ID!, $status: String!) {
     updateTaskStatus(id: $id, status: $status) {
@@ -233,7 +273,8 @@ export const UPDATE_TASK_STATUS = gql`
   }
 `;
 
-// Message Queries
+
+// --- Messages Queries ---
 export const GET_MY_MESSAGES = gql`
   query GetMyMessages($userId: ID!) {
     getMyMessages(userId: $userId) {
@@ -242,12 +283,10 @@ export const GET_MY_MESSAGES = gql`
       sender {
         id
         username
-        role
       }
       receiver {
         id
         username
-        role
       }
       isRead
       createdAt
@@ -255,6 +294,57 @@ export const GET_MY_MESSAGES = gql`
   }
 `;
 
+// --- Messages Mutations ---
+export const SEND_MESSAGE = gql`
+  mutation SendMessage($senderId: ID!, $receiverId: ID!, $content: String!) {
+    sendMessage(senderId: $senderId, receiverId: $receiverId, content: $content) {
+      id
+      content
+      sender {
+        id
+        username
+      }
+      receiver {
+        id
+        username
+      }
+      isRead
+      createdAt
+    }
+  }
+`;
+
+// --- Message Subscription ---
+export const MESSAGE_SUBSCRIPTION = gql`
+  subscription MessageSent($receiverId: ID!) {
+    messageSent(receiverId: $receiverId) {
+      id
+      content
+      sender {
+        id
+        username
+      }
+      receiver {
+        id
+        username
+      }
+      isRead
+      createdAt
+    }
+  }
+`;
+
+// --- Mark message read ---
+export const MARK_MESSAGE_AS_READ = gql`
+  mutation MarkMessageAsRead($messageId: ID!) {
+    markMessageAsRead(messageId: $messageId) {
+      id
+      isRead
+    }
+  }
+`;
+
+// --- Message Threads Query ---
 export const GET_MESSAGE_THREADS = gql`
   query GetMessageThreads {
     getMessageThreads {
@@ -274,34 +364,8 @@ export const GET_MESSAGE_THREADS = gql`
   }
 `;
 
-// Message Mutations
-export const SEND_MESSAGE = gql`
-  mutation SendMessage($receiverId: ID!, $content: String!) {
-    sendMessage(receiverId: $receiverId, content: $content) {
-      id
-      content
-      sender {
-        username
-      }
-      receiver {
-        username
-      }
-      isRead
-      createdAt
-    }
-  }
-`;
 
-export const MARK_MESSAGE_AS_READ = gql`
-  mutation MarkMessageAsRead($messageId: ID!) {
-    markMessageAsRead(messageId: $messageId) {
-      id
-      isRead
-    }
-  }
-`;
-
-// Student Dashboard
+// --- Student Dashboard ---
 export const GET_STUDENT_DASHBOARD = gql`
   query GetStudentDashboard {
     getStudentDashboard {
@@ -369,27 +433,6 @@ export const GET_STUDENT_STATS = gql`
       completedTasks
       pendingTasks
       inProgressTasks
-    }
-  }
-`;
-
-// Student Tasks
-export const GET_MY_TASKS = gql`
-  query GetMyTasks {
-    getMyTasks {
-      id
-      title
-      description
-      status
-      dueDate
-      project {
-        id
-        name
-      }
-      assignedTo {
-        id
-        username
-      }
     }
   }
 `;

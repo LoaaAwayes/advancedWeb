@@ -16,27 +16,22 @@ function Dashboard() {
     completedTasks: 0
   });
 
-  // Query to get admin statistics
   const { data: statsData, loading: statsLoading, refetch: refetchStats } = useQuery(GET_ADMIN_STATS, {
     fetchPolicy: 'network-only'
   });
 
-  // Query to get students
   const { data: studentsData, loading: studentsLoading } = useQuery(GET_STUDENTS, {
     fetchPolicy: 'network-only'
   });
 
-  // Loading state
   const loading = statsLoading || studentsLoading;
 
-  // Update admin stats when data is fetched
   useEffect(() => {
     if (statsData && statsData.getAdminStats) {
       setAdminStats(statsData.getAdminStats);
     }
   }, [statsData]);
 
-  // Refresh data every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       refetchStats();
@@ -45,7 +40,6 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, [refetchStats]);
 
-  // Update date and time
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();

@@ -29,10 +29,10 @@ function DashboardChartS({ title, data }) {
           label: 'Count',
           data: values,
           backgroundColor: [
-            'rgba(54, 162, 235, 0.6)',     // Blue
-            'rgba(255, 206, 86, 0.6)',     // Yellow
-            'rgba(75, 192, 192, 0.6)',     // Teal
-            'rgba(153, 102, 255, 0.6)',    // Purple
+            'rgba(54, 162, 235, 0.6)',    
+            'rgba(255, 206, 86, 0.6)',    
+            'rgba(75, 192, 192, 0.6)',     
+            'rgba(153, 102, 255, 0.6)',    
           ],
           borderColor: ['#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
           borderWidth: 2,
@@ -42,16 +42,14 @@ function DashboardChartS({ title, data }) {
     });
   }, [data]);
 
-  // Calculate max value for y-axis scale
   const maxValue = Math.max(...(data.values || [0])) || 10;
 
-  // Add 20% padding to the max value
   const yAxisMax = Math.ceil(maxValue * 1.2);
 
   const chartOptions = {
     responsive: true,
     animation: {
-      duration: 1000 // Add animation for better visual feedback
+      duration: 1000 
     },
     maintainAspectRatio: false,
     plugins: {

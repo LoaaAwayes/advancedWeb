@@ -16,12 +16,12 @@ function Tasks() {
   const [allTasks, setAllTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all projects
+  
   const { data: projectsData, loading: loadingProjects, refetch: refetchProjects } = useQuery(GET_ALL_PROJECTS, {
     fetchPolicy: 'network-only'
   });
 
-  // Effect to fetch tasks for all projects
+  
   useEffect(() => {
     async function fetchAllTasks() {
       setLoading(true);
@@ -31,10 +31,8 @@ function Tasks() {
           const projects = projectsData.getAllProjects;
           let tasksArray = [];
 
-          // For each project, extract its tasks
           for (const project of projects) {
             if (project.tasks && project.tasks.length > 0) {
-              // Add project name to each task
               const projectTasks = project.tasks.map(task => ({
                 ...task,
                 projectName: project.name,
@@ -59,7 +57,6 @@ function Tasks() {
     }
   }, [projectsData, loadingProjects]);
 
-  // Effect to sort tasks when they change or sort criteria changes
   useEffect(() => {
     if (!loading) {
       sortTasks(sortBy);
@@ -91,7 +88,6 @@ function Tasks() {
     setSortedTasks(tasksCopy);
   };
 
-  // Function to refresh data
   const refreshData = () => {
     refetchProjects();
   };
@@ -147,7 +143,7 @@ function Tasks() {
 
   return (
     <div className="flex flex-col p-6 text-white">
-  {/* Header */}
+ 
   <div className="flex items-center justify-between mb-6">
     <div className="flex items-center space-x-2">
       <label htmlFor="sort-select" className="text-sm font-medium">Sort By:</label>
@@ -172,7 +168,7 @@ function Tasks() {
     </Link>
   </div>
 
-  {/* Table */}
+  
   <div className="overflow-x-auto bg-[#1f1f1f] rounded-lg shadow-md">
     <table className="min-w-full text-sm">
       <thead className="bg-[#2a2a2a]">

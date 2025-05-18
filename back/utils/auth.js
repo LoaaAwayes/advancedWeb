@@ -1,6 +1,4 @@
-/**
- * Authentication and authorization utility functions
- */
+
 const { AuthenticationError, ForbiddenError } = require('apollo-server-express');
 
 /**
@@ -24,10 +22,8 @@ const checkAuth = (context) => {
  * @throws {ForbiddenError} - If not an admin
  */
 const checkAdmin = async (context) => {
-  // First check if user is authenticated
   checkAuth(context);
   
-  // Then check if user is an admin
   try {
     const [adminCheck] = await context.db.execute(
       'SELECT role FROM users WHERE id = ?',
@@ -55,10 +51,10 @@ const checkAdmin = async (context) => {
  * @throws {ForbiddenError} - If not a student
  */
 const checkStudent = async (context) => {
-  // First check if user is authenticated
+  
   checkAuth(context);
   
-  // Then check if user is a student
+  
   try {
     const [studentCheck] = await context.db.execute(
       'SELECT role FROM users WHERE id = ?',

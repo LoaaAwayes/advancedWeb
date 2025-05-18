@@ -12,13 +12,11 @@ function Dashboard() {
     values: [0, 0, 0, 0]
   });
 
-  // Fetch student dashboard data from GraphQL
   const { data: dashboardData, loading } = useQuery(GET_STUDENT_DASHBOARD, {
     fetchPolicy: 'network-only',
-    pollInterval: 10000 // Refresh every 10 seconds to ensure data is up-to-date
+    pollInterval: 10000 
   });
 
-  // Extract student data and stats
   const student = dashboardData?.getStudentDashboard?.student || {};
   const stats = dashboardData?.getStudentDashboard?.stats || {
     assignedProjects: 0,
@@ -29,7 +27,6 @@ function Dashboard() {
   const assignedProjects = dashboardData?.getStudentDashboard?.assignedProjects || [];
   const recentTasks = dashboardData?.getStudentDashboard?.recentTasks || [];
 
-  // Update chart data when dashboard data changes
   useEffect(() => {
     if (dashboardData?.getStudentDashboard) {
       const { stats } = dashboardData.getStudentDashboard;

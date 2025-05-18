@@ -15,7 +15,6 @@ function SignIn() {
   });
   const [error, setError] = useState('');
   
-  // Check for saved credentials
   useEffect(() => {
     if (localStorage.getItem('staySignedIn') === 'true') {
       setFormData(prev => ({
@@ -59,7 +58,6 @@ function SignIn() {
     const result = signIn(username, password, staySignedIn);
     
     if (result.success) {
-      // Redirect based on user role is handled by the routes in App.js
       navigate('/');
     } else {
       setError(result.message);

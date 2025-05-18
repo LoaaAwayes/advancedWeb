@@ -36,7 +36,6 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [studentDashboard, setStudentDashboard] = useState(null);
 
-  // Queries
   const { data: studentsData, refetch: refetchStudents } = useQuery(GET_STUDENTS, {
     skip: !isAdmin,
     fetchPolicy: 'network-only'
@@ -52,7 +51,6 @@ export function DataProvider({ children }) {
     fetchPolicy: 'network-only'
   });
 
-  // Mutations
   const [createProjectMutation] = useMutation(CREATE_PROJECT);
   const [assignProjectMutation] = useMutation(ASSIGN_PROJECT);
   const [updateProjectCompletionMutation] = useMutation(UPDATE_PROJECT_COMPLETION);
@@ -62,12 +60,10 @@ export function DataProvider({ children }) {
   const [sendMessageMutation] = useMutation(SEND_MESSAGE);
   const [markMessageAsReadMutation] = useMutation(MARK_MESSAGE_AS_READ);
 
-  // Load data when user changes or when data is refetched
   useEffect(() => {
     if (currentUser) {
       loadData();
     } else {
-      // Reset data when user logs out
       setProjects([]);
       setTasks([]);
       setStudents([]);
@@ -80,12 +76,10 @@ export function DataProvider({ children }) {
     setLoading(true);
 
     try {
-      // Load students if admin
       if (isAdmin && studentsData && studentsData.getUsers) {
         setStudents(studentsData.getUsers);
       }
 
-      // Load projects
       if (projectsData) {
         if (isAdmin && projectsData.getAllProjects) {
           setProjects(projectsData.getAllProjects);
@@ -94,11 +88,9 @@ export function DataProvider({ children }) {
         }
       }
 
-      // Load student dashboard data
       if (isStudent && dashboardData && dashboardData.getStudentDashboard) {
         setStudentDashboard(dashboardData.getStudentDashboard);
 
-        // Extract tasks and messages from dashboard
         setTasks(dashboardData.getStudentDashboard.recentTasks || []);
         setMessages(dashboardData.getStudentDashboard.recentMessages || []);
       }
@@ -123,7 +115,6 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Project functions
   const addProject = async (projectData) => {
     try {
       const { data } = await createProjectMutation({
@@ -134,7 +125,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.createProject) {
-        // If students are specified, assign them to the project
         if (projectData.students) {
           const studentIds = projectData.students.split(', ');
           for (const studentId of studentIds) {
@@ -147,7 +137,6 @@ export function DataProvider({ children }) {
           }
         }
 
-        // Refresh projects list
         await refetchProjects();
         return data.createProject;
       }
@@ -168,7 +157,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.updateProjectCompletion) {
-        // Refresh projects
         await refetchProjects();
         if (isStudent) {
           await refetchDashboard();
@@ -182,7 +170,6 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Task functions
   const addTask = async (taskData) => {
     try {
       const { data } = await createTaskMutation({
@@ -195,7 +182,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.createTask) {
-        // If student is specified, assign the task
         if (taskData.studentId) {
           await assignTaskMutation({
             variables: {
@@ -205,7 +191,6 @@ export function DataProvider({ children }) {
           });
         }
 
-        // Refresh data
         await refreshData();
         return data.createTask;
       }
@@ -226,7 +211,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.updateTaskStatus) {
-        // Refresh data
         await refreshData();
         return data.updateTaskStatus;
       }
@@ -237,7 +221,6 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Message functions
   const addMessage = async (receiverId, content) => {
     try {
       const { data } = await sendMessageMutation({
@@ -248,7 +231,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.sendMessage) {
-        // Refresh data
         await refreshData();
         return data.sendMessage;
       }
@@ -284,7 +266,6 @@ export function DataProvider({ children }) {
       });
 
       if (data && data.markMessageAsRead) {
-        // Refresh data
         await refreshData();
         return true;
       }

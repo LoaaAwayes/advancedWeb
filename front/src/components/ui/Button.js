@@ -1,8 +1,8 @@
 function Button({
   children,
   type = 'button',
-  variant = 'primary', // primary, secondary, success, danger, warning
-  size = 'md', // sm, md, lg
+  variant = 'primary',
+  size = 'md', 
   fullWidth = false,
   onClick,
   disabled = false,

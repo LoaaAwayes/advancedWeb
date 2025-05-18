@@ -1,31 +1,25 @@
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt'); // Import bcrypt
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken
-const cors = require('cors'); // Import cors for cross-origin requests
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const { typeDefs, resolvers } = require('./schema');
 
 const app = express();
 
-// Enable CORS for all routes
 app.use(cors());
-
-// Parse JSON request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import routes
 const studentRoutes = require('./studentRoutes');
-
-// Use routes
 app.use('/api/student', studentRoutes);
 
-// Replace with your MySQL credentials
 const dbConfig = {
   host: 'localhost',
   user: 'root',
-  password: '0000',
+  password: '',
   database: 'task_managment',
 };
 
@@ -34,72 +28,161 @@ let connection;
 async function connectToDatabase() {
   try {
     connection = await mysql.createConnection(dbConfig);
-    console.log('Connected to the MySQL database.');
-
-    // Make the database connection available to routes
+    console.log('✅ Connected to MySQL');
     app.locals.db = connection;
   } catch (error) {
-    console.error('Error connecting to the database:', error);
-    // Exit the process or handle the error appropriately
+    console.error('❌ Database connection failed:', error);
     process.exit(1);
   }
 }
 
 connectToDatabase();
 
-// Define a secret key for JWT - in production, use environment variables
-const JWT_SECRET = 'YOUR_SECRET_KEY'; // Make sure this matches the key in schema.js
+const JWT_SECRET = 'YOUR_SECRET_KEY';
 
-const server = new ApolloServer({
+const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => {
-    // Get the user token from the headers
     const token = req.headers.authorization || '';
-
-    // Try to retrieve a user with the token
     let userId = null;
     let userRole = null;
 
     if (token) {
       try {
-        // Verify the token and extract the user ID
         const tokenValue = token.startsWith('Bearer ') ? token.slice(7) : token;
-        console.log('Token received:', token);
-        console.log('Token to verify:', tokenValue);
-
         const decoded = jwt.verify(tokenValue, JWT_SECRET);
-        console.log('Decoded token:', decoded);
-
         userId = decoded.userId;
         userRole = decoded.role;
-
-        console.log('User authenticated:', { userId, userRole });
       } catch (e) {
-        console.error('Error verifying token:', e.message);
-        // Invalid token - don't set userId
+        console.error('Token verification failed:', e.message);
       }
-    } else {
-      console.log('No token provided in request');
     }
 
-    // Add the user ID and database connection to the context
     return {
       userId,
       userRole,
-      db: connection
+      db: connection,
     };
-  }
+  },
 });
 
 async function startServer() {
-  await server.start();
-  server.applyMiddleware({ app });
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app });
 
-  const PORT = process.env.PORT || 3002; // Using a different port like 3002 for backend
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`GraphQL endpoint at http://localhost:${PORT}${server.graphqlPath}`);
+  const httpServer = http.createServer(app);
+
+  const io = new Server(httpServer, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST'],
+    },
+  });
+
+  // Authentication middleware
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Authentication error: token missing'));
+    }
+    try {
+      const user = jwt.verify(token, JWT_SECRET);
+      socket.user = user;
+      next();
+    } catch (err) {
+      next(new Error('Authentication error: invalid token'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log(`🟢 User connected: ${socket.user.userId} (${socket.user.role})`);
+    
+    // Join user to their personal room
+    socket.join(`user_${socket.user.userId}`);
+
+    socket.on('message', async (msg) => {
+      try {
+        console.log('🟡 Message received:', msg);
+        
+        // Validate and convert message data
+        const senderId = Number(msg.sender_id);
+        const receiverId = Number(msg.receiver_id);
+        const content = String(msg.content).trim();
+
+        if (isNaN(senderId)) throw new Error('Invalid sender_id');
+        if (isNaN(receiverId)) throw new Error('Invalid receiver_id');
+        if (!content) throw new Error('Message content is empty');
+        if (content.length > 1000) throw new Error('Message too long');
+
+        // Verify sender matches authenticated user
+        if (senderId !== socket.user.userId) {
+          throw new Error('Sender ID does not match authenticated user');
+        }
+
+        // Check if receiver exists
+        const [receiver] = await connection.execute(
+          'SELECT id FROM users WHERE id = ?',
+          [receiverId]
+        );
+        if (receiver.length === 0) {
+          throw new Error('Receiver does not exist');
+        }
+
+        const createdAt = new Date();
+        const [result] = await connection.execute(
+          'INSERT INTO messages (content, sender_id, receiver_id, is_read, created_at) VALUES (?, ?, ?, FALSE, ?)',
+          [content, senderId, receiverId, createdAt]
+        );
+
+        // Get the full saved message with joined user data
+        const [savedMessage] = await connection.execute(
+          `SELECT m.*, 
+           u1.username as sender_name,
+           u2.username as receiver_name
+           FROM messages m
+           JOIN users u1 ON m.sender_id = u1.id
+           JOIN users u2 ON m.receiver_id = u2.id
+           WHERE m.id = ?`,
+          [result.insertId]
+        );
+
+        const fullMessage = {
+          ...savedMessage[0],
+          created_at: savedMessage[0].created_at.toISOString()
+        };
+
+        console.log('📤 Broadcasting message:', fullMessage);
+        
+        // Emit to both sender and receiver
+        io.to(`user_${senderId}`).emit('new_message', fullMessage);
+        io.to(`user_${receiverId}`).emit('new_message', fullMessage);
+
+        // Send acknowledgement to sender
+        socket.emit('message_ack', { 
+          status: 'success',
+          messageId: result.insertId 
+        });
+
+      } catch (err) {
+        console.error('❌ Message handling error:', err.message);
+        socket.emit('error', { 
+          status: 'error',
+          message: err.message 
+        });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`🔴 User disconnected: ${socket.user.userId}`);
+    });
+  });
+
+  const PORT = process.env.PORT || 3002;
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 HTTP server running on http://localhost:${PORT}`);
+    console.log(`🚀 GraphQL endpoint: http://localhost:${PORT}${apolloServer.graphqlPath}`);
+    console.log(`🔌 Socket.IO server running on http://localhost:${PORT}`);
   });
 }
 

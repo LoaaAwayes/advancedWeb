@@ -12,31 +12,25 @@ const Projects = () => {
   const [projectTasks, setProjectTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
-  // Get Apollo client for direct queries
   const client = useApolloClient();
 
-  // Fetch student's projects
   const { data: projectsData, loading: loadingProjects, refetch: refetchProjects } = useQuery(GET_MY_PROJECTS, {
     fetchPolicy: 'network-only'
   });
 
-  // Mutation for updating project completion
   const [updateProjectCompletion] = useMutation(UPDATE_PROJECT_COMPLETION, {
     onCompleted: () => {
       refetchProjects();
     }
   });
 
-  // Get projects from query result
   const projects = projectsData?.getMyProjects || [];
 
-  // Handle project selection and fetch tasks
   const handleSelectProject = async (project) => {
     setSelectedProject(project);
     setLoadingTasks(true);
 
     try {
-      // Fetch tasks for the selected project
       const { data } = await client.query({
         query: GET_PROJECT_TASKS,
         variables: { projectId: project.id },
@@ -56,7 +50,6 @@ const Projects = () => {
     }
   };
 
-  // Handle project completion percentage change
   const handleProgressChange = async (projectId, newProgress) => {
     try {
       await updateProjectCompletion({
@@ -70,7 +63,6 @@ const Projects = () => {
     }
   };
 
-  // Filter projects based on search term and status
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,7 +127,7 @@ const Projects = () => {
             const completionPercentage = project.completionPercentage || 0;
             const color = `hsl(${completionPercentage * 1.2}, 100%, 45%)`;
 
-            // Format status for display
+         
             const displayStatus = project.status === 'in_progress' ? 'In Progress' :
                                  project.status.charAt(0).toUpperCase() + project.status.slice(1);
 

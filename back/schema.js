@@ -1,13 +1,12 @@
 const { gql, AuthenticationError, ForbiddenError } = require('apollo-server-express');
-const bcrypt = require('bcrypt'); // Import bcrypt
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken
+const bcrypt = require('bcrypt'); 
+const jwt = require('jsonwebtoken'); 
 const { checkAuth, checkAdmin, checkStudent } = require('./utils/auth');
 const projectResolvers = require('./resolvers/projectResolvers');
 const taskResolvers = require('./resolvers/taskResolvers');
 const messageResolvers = require('./resolvers/messageResolvers');
 const studentResolvers = require('./resolvers/studentResolvers');
 
-// Define your GraphQL schema based on potential frontend needs
 const typeDefs = gql`
   # --- Types ---
 
@@ -160,14 +159,24 @@ const typeDefs = gql`
     updateProjectCompletion(id: ID!, completionPercentage: Int!): Project # Update project completion percentage
 
     # Task Mutations - Admin Only
-    createTask(projectId: ID!, title: String!, description: String, dueDate: String): Task # Create a new task
+  
+
+
     assignTaskToStudent(taskId: ID!, studentId: ID!): Task # Assign a task to a student
+     createTask(
+    projectId: ID!
+    title: String!
+    description: String!
+    dueDate: String!
+    status: String!
+  ): Task
 
     # Task Mutations - Admin & Student
     updateTaskStatus(id: ID!, status: String!): Task # Update task status
     updateTaskDetails(id: ID!, title: String, description: String, dueDate: String): Task # Update task details
     deleteTask(id: ID!): DeleteTaskResponse # Delete a task
 
+ 
     # Message Mutations
     sendMessage(receiverId: ID!, content: String!): Message # Send a message to another user
     markMessageAsRead(messageId: ID!): Message # Mark a message as read
@@ -200,13 +209,11 @@ const typeDefs = gql`
   }
 `;
 
-// Define your resolvers to fetch data from the database
 const resolvers = {
   Query: {
     me: async (_, __, context) => {
-      // Logic to get the logged-in user based on context (e.g., from a JWT token)
       if (!context.userId) {
-        return null; // Not authenticated
+        return null; 
       }
       try {
         const [rows] = await context.db.execute('SELECT * FROM users WHERE id = ?', [context.userId]);
@@ -218,11 +225,9 @@ const resolvers = {
     },
 
     getUsers: async (_, __, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Fetch only student users (filter out admin users)
         const [rows] = await context.db.execute('SELECT * FROM users WHERE role = ?', ['student']);
         return rows;
       } catch (error) {
@@ -232,11 +237,9 @@ const resolvers = {
     },
 
     getStudents: async (_, __, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Fetch only student users
         const [rows] = await context.db.execute('SELECT * FROM users WHERE role = ?', ['student']);
         return rows;
       } catch (error) {
@@ -246,7 +249,6 @@ const resolvers = {
     },
 
     getUser: async (_, { id }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
@@ -262,11 +264,9 @@ const resolvers = {
     },
 
     searchUsers: async (_, { query }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Search by username or university ID
         const searchQuery = `%${query}%`;
         const [rows] = await context.db.execute(
           'SELECT * FROM users WHERE username LIKE ? OR university_id LIKE ?',
@@ -280,29 +280,24 @@ const resolvers = {
     },
 
     getAdminStats: async (_, __, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Get total users count (both students and admins)
         const [totalUsersResult] = await context.db.execute('SELECT COUNT(*) as count FROM users');
         const totalUsers = totalUsersResult[0].count;
 
-        // Get total students count
         const [totalStudentsResult] = await context.db.execute(
           'SELECT COUNT(*) as count FROM users WHERE role = ?',
           ['student']
         );
         const totalStudents = totalStudentsResult[0].count;
 
-        // Get total admins count
         const [totalAdminsResult] = await context.db.execute(
           'SELECT COUNT(*) as count FROM users WHERE role = ?',
           ['admin']
         );
         const totalAdmins = totalAdminsResult[0].count;
 
-        // Get new students registered today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayISOString = today.toISOString().split('T')[0];
@@ -313,45 +308,37 @@ const resolvers = {
         );
         const newUsersToday = newUsersTodayResult[0].count;
 
-        // For active users, we'll just count students for now
-        // In a real app, you might track login activity in a separate table
+
         const activeUsers = totalStudents;
 
-        // Get project statistics
-        // Total projects
+      
         const [totalProjectsResult] = await context.db.execute('SELECT COUNT(*) as count FROM projects');
         const totalProjects = totalProjectsResult[0].count;
 
-        // Active projects (open or in_progress)
         const [activeProjectsResult] = await context.db.execute(
           "SELECT COUNT(*) as count FROM projects WHERE status IN ('open', 'in_progress')"
         );
         const activeProjects = activeProjectsResult[0].count;
 
-        // Completed projects
         const [completedProjectsResult] = await context.db.execute(
           "SELECT COUNT(*) as count FROM projects WHERE status = 'completed'"
         );
         const completedProjects = completedProjectsResult[0].count;
 
-        // Get task statistics
-        // Total tasks
+       
         const [totalTasksResult] = await context.db.execute('SELECT COUNT(*) as count FROM tasks');
         const totalTasks = totalTasksResult[0].count;
 
-        // Pending tasks
         const [pendingTasksResult] = await context.db.execute(
           "SELECT COUNT(*) as count FROM tasks WHERE status = 'pending'"
         );
         const pendingTasks = pendingTasksResult[0].count;
 
-        // In progress tasks
         const [inProgressTasksResult] = await context.db.execute(
           "SELECT COUNT(*) as count FROM tasks WHERE status = 'in_progress'"
         );
         const inProgressTasks = inProgressTasksResult[0].count;
 
-        // Completed tasks
         const [completedTasksResult] = await context.db.execute(
           "SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'"
         );
@@ -378,13 +365,11 @@ const resolvers = {
     },
 
     getStudentStats: async (_, __, context) => {
-      // Check if user is authenticated and is a student
       if (!context.userId) {
         throw new AuthenticationError('Not authenticated. Please log in.');
       }
 
       try {
-        // Check if the user is a student
         const [userCheck] = await context.db.execute(
           'SELECT role FROM users WHERE id = ?',
           [context.userId]
@@ -394,7 +379,6 @@ const resolvers = {
           throw new ForbiddenError('Not authorized. Student access only.');
         }
 
-        // Get assigned projects count
         const [assignedProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM project_assignments
            WHERE student_id = ?`,
@@ -402,7 +386,6 @@ const resolvers = {
         );
         const assignedProjects = assignedProjectsResult[0].count;
 
-        // Get completed projects count
         const [completedProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -411,7 +394,6 @@ const resolvers = {
         );
         const completedProjects = completedProjectsResult[0].count;
 
-        // Get in-progress projects count
         const [inProgressProjectsResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM projects p
            JOIN project_assignments pa ON p.id = pa.project_id
@@ -420,7 +402,6 @@ const resolvers = {
         );
         const inProgressProjects = inProgressProjectsResult[0].count;
 
-        // Get assigned tasks count
         const [assignedTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ?`,
@@ -428,7 +409,6 @@ const resolvers = {
         );
         const assignedTasks = assignedTasksResult[0].count;
 
-        // Get completed tasks count
         const [completedTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'completed'`,
@@ -436,7 +416,6 @@ const resolvers = {
         );
         const completedTasks = completedTasksResult[0].count;
 
-        // Get pending tasks count
         const [pendingTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'pending'`,
@@ -444,7 +423,6 @@ const resolvers = {
         );
         const pendingTasks = pendingTasksResult[0].count;
 
-        // Get in-progress tasks count
         const [inProgressTasksResult] = await context.db.execute(
           `SELECT COUNT(*) as count FROM tasks
            WHERE assigned_to = ? AND status = 'in_progress'`,
@@ -467,31 +445,141 @@ const resolvers = {
       }
     }
   },
+  getMessagesByReceiver: async (_, { receiverId }, context) => {
+      await checkAuth(context);
+      try {
+        const [rows] = await context.db.execute('SELECT * FROM messages WHERE receiver_id = ?', [receiverId]);
+        return rows;
+      } catch (error) {
+        throw new Error('Failed to fetch messages by receiver: ' + error.message);
+      }
+    },
 
+    getMessagesBySender: async (_, { senderId }, context) => {
+      await checkAuth(context);
+      try {
+        const [rows] = await context.db.execute('SELECT * FROM messages WHERE sender_id = ?', [senderId]);
+        return rows;
+      } catch (error) {
+        throw new Error('Failed to fetch messages by sender: ' + error.message);
+      }
+    },  
+    getMessagesBySender: async (_, { senderId }, context) => {
+      await checkAuth(context);
+      try {
+        const [rows] = await context.db.execute('SELECT * FROM messages WHERE sender_id = ?', [senderId]);
+        return rows;
+      } catch (error) {
+        throw new Error('Failed to fetch messages by sender: ' + error.message);
+      }
+    },
+    sendMessage: async (_, { receiverId, content }, context) => {
+  await checkAuth(context);
+  
+  // Validate input
+  if (!content || !content.trim()) {
+    throw new Error('Message content cannot be empty');
+  }
+  
+  if (!receiverId) {
+    throw new Error('Receiver ID is required');
+  }
+
+  try {
+    // Verify receiver exists
+    const [receiver] = await context.db.execute(
+      'SELECT id FROM users WHERE id = ?', 
+      [receiverId]
+    );
+    
+    if (receiver.length === 0) {
+      throw new Error('Receiver not found');
+    }
+
+    // Start transaction
+    await context.db.execute('START TRANSACTION');
+
+    try {
+      // Insert message with explicit timestamp
+      const [result] = await context.db.execute(
+        `INSERT INTO messages 
+         (content, sender_id, receiver_id, is_read, created_at) 
+         VALUES (?, ?, ?, FALSE, NOW())`,
+        [content.trim(), context.userId, receiverId]
+      );
+
+      // Verify insertion
+      if (!result.insertId) {
+        throw new Error('Failed to insert message');
+      }
+
+      // Retrieve the full message with sender/receiver details
+      const [message] = await context.db.execute(
+        `SELECT m.*, 
+         u1.username as sender_name,
+         u2.username as receiver_name
+         FROM messages m
+         JOIN users u1 ON m.sender_id = u1.id
+         JOIN users u2 ON m.receiver_id = u2.id
+         WHERE m.id = ?`,
+        [result.insertId]
+      );
+
+      if (message.length === 0) {
+        throw new Error('Failed to retrieve created message');
+      }
+
+      // Commit transaction
+      await context.db.execute('COMMIT');
+
+      // Format the response
+      const formattedMessage = {
+        ...message[0],
+        id: message[0].id.toString(),
+        isRead: Boolean(message[0].is_read),
+        createdAt: message[0].created_at.toISOString(),
+        sender: {
+          id: message[0].sender_id,
+          username: message[0].sender_name
+        },
+        receiver: {
+          id: message[0].receiver_id,
+          username: message[0].receiver_name
+        }
+      };
+
+      return formattedMessage;
+
+    } catch (error) {
+      // Rollback on error
+      await context.db.execute('ROLLBACK');
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw new Error('Failed to send message: ' + error.message);
+  }
+},
   Mutation: {
     signup: async (_, { username, password, universityId }, context) => {
-      // Check if username already exists
       const [existingUsers] = await context.db.execute('SELECT id FROM users WHERE username = ?', [username]);
       if (existingUsers.length > 0) {
         throw new Error('User with this username already exists.');
       }
 
-      // Check if university ID is provided
       if (!universityId) {
         throw new Error('University ID is required for student registration.');
       }
 
-      // Check if university ID is already in use
       const [existingUnivIds] = await context.db.execute('SELECT id FROM users WHERE university_id = ?', [universityId]);
       if (existingUnivIds.length > 0) {
         throw new Error('This University ID is already registered.');
       }
 
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+      const hashedPassword = await bcrypt.hash(password, 10); 
 
       try {
-        // For signup, we always create a student role
         const [result] = await context.db.execute(
           'INSERT INTO users (username, password_hash, role, university_id) VALUES (?, ?, ?, ?)',
           [username, hashedPassword, 'student', universityId]
@@ -506,23 +594,22 @@ const resolvers = {
     },
 
     signin: async (_, { username, password }, context) => {
-      // Find the user by username
       const [rows] = await context.db.execute('SELECT * FROM users WHERE username = ?', [username]);
       const user = rows[0];
       if (!user) {
         throw new Error('Invalid credentials.');
       }
 
-      // Compare the provided password with the hashed password in the database
+      
       const passwordMatch = await bcrypt.compare(password, user.password_hash);
       if (!passwordMatch) {
         throw new Error('Invalid credentials.');
       }
 
-      // Generate a JWT token
+      
       const token = jwt.sign(
         { userId: user.id, role: user.role },
-        'YOUR_SECRET_KEY', // This matches the JWT_SECRET in server.js
+        'YOUR_SECRET_KEY', 
         { expiresIn: '24h' }
       );
 
@@ -537,26 +624,22 @@ const resolvers = {
     },
 
     createStudent: async (_, { username, password, universityId }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Check if username already exists
         const [existingUsers] = await context.db.execute('SELECT id FROM users WHERE username = ?', [username]);
         if (existingUsers.length > 0) {
           throw new Error('User with this username already exists.');
         }
 
-        // Check if university ID is already in use
         const [existingUnivIds] = await context.db.execute('SELECT id FROM users WHERE university_id = ?', [universityId]);
         if (existingUnivIds.length > 0) {
           throw new Error('This University ID is already registered.');
         }
 
-        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create the student user
+   
         const [result] = await context.db.execute(
           'INSERT INTO users (username, password_hash, role, university_id) VALUES (?, ?, ?, ?)',
           [username, hashedPassword, 'student', universityId]
@@ -571,12 +654,54 @@ const resolvers = {
       }
     },
 
+    createTask: async (_, { projectId, title, description, dueDate, status }, context) => {
+ 
+  await checkAdmin(context);
+
+ 
+  if (!projectId || !title || !description || !dueDate || !status) {
+    throw new Error('All fields (projectId, title, description, dueDate, status) are required.');
+  }
+
+ 
+  const validStatuses = ['pending', 'in_progress', 'completed'];
+  if (!validStatuses.includes(status)) {
+    throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+  }
+
+  try {
+    
+    const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [projectId]);
+    if (projectRows.length === 0) {
+      throw new Error(`Project with ID ${projectId} does not exist.`);
+    }
+
+    
+    const [result] = await context.db.execute(
+      `INSERT INTO tasks (project_id, title, description, status, due_date, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      [projectId, title, description, status, dueDate]
+    );
+
+    const taskId = result.insertId;
+
+    
+    const [taskRows] = await context.db.execute('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    if (taskRows.length === 0) {
+      throw new Error('Failed to fetch created task.');
+    }
+
+    return taskRows[0];
+  } catch (error) {
+    console.error('Error creating task:', error);
+    throw new Error('Failed to create task: ' + error.message);
+  }
+},
+
     updateUser: async (_, { id, username, universityId }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Check if user exists
         const [userCheck] = await context.db.execute('SELECT * FROM users WHERE id = ?', [id]);
         if (userCheck.length === 0) {
           throw new Error(`User with ID ${id} not found`);
@@ -584,7 +709,6 @@ const resolvers = {
 
         const user = userCheck[0];
 
-        // Check if username is being changed and if it's already taken
         if (username && username !== user.username) {
           const [existingUsers] = await context.db.execute(
             'SELECT id FROM users WHERE username = ? AND id != ?',
@@ -595,7 +719,6 @@ const resolvers = {
           }
         }
 
-        // Check if university ID is being changed and if it's already taken
         if (universityId && universityId !== user.university_id) {
           const [existingUnivIds] = await context.db.execute(
             'SELECT id FROM users WHERE university_id = ? AND id != ?',
@@ -606,7 +729,6 @@ const resolvers = {
           }
         }
 
-        // Build the update query dynamically based on provided fields
         let updateQuery = 'UPDATE users SET ';
         const updateValues = [];
         const updateFields = [];
@@ -621,7 +743,6 @@ const resolvers = {
           updateValues.push(universityId);
         }
 
-        // If no fields to update, return the user as is
         if (updateFields.length === 0) {
           return user;
         }
@@ -629,10 +750,8 @@ const resolvers = {
         updateQuery += updateFields.join(', ') + ' WHERE id = ?';
         updateValues.push(id);
 
-        // Execute the update
         await context.db.execute(updateQuery, updateValues);
 
-        // Fetch and return the updated user
         const [rows] = await context.db.execute('SELECT * FROM users WHERE id = ?', [id]);
         return rows[0];
       } catch (error) {
@@ -642,22 +761,18 @@ const resolvers = {
     },
 
     deleteUser: async (_, { id }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Check if user exists
         const [userCheck] = await context.db.execute('SELECT * FROM users WHERE id = ?', [id]);
         if (userCheck.length === 0) {
           throw new Error(`User with ID ${id} not found`);
         }
 
-        // Check if trying to delete an admin
         if (userCheck[0].role === 'admin') {
           throw new Error('Cannot delete admin users');
         }
 
-        // Delete the user
         await context.db.execute('DELETE FROM users WHERE id = ?', [id]);
 
         return {
@@ -676,26 +791,21 @@ const resolvers = {
     },
 
     resetUserPassword: async (_, { id, newPassword }, context) => {
-      // Use the checkAdmin utility function
       await checkAdmin(context);
 
       try {
-        // Check if user exists
         const [userCheck] = await context.db.execute('SELECT * FROM users WHERE id = ?', [id]);
         if (userCheck.length === 0) {
           throw new Error(`User with ID ${id} not found`);
         }
 
-        // Hash the new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update the password
         await context.db.execute(
           'UPDATE users SET password_hash = ? WHERE id = ?',
           [hashedPassword, id]
         );
 
-        // Fetch and return the updated user
         const [rows] = await context.db.execute('SELECT * FROM users WHERE id = ?', [id]);
         return rows[0];
       } catch (error) {
@@ -704,8 +814,54 @@ const resolvers = {
       }
     }
   },
+ getMessagesBySender: async (_, { senderId }, context) => {
+      await checkAuth(context);
+      try {
+        const [rows] = await context.db.execute('SELECT * FROM messages WHERE sender_id = ?', [senderId]);
+        return rows;
+      } catch (error) {
+        throw new Error('Failed to fetch messages by sender: ' + error.message);
+      }
+    },sendMessage: async (_, { receiverId, content }, context) => {
+      await checkAuth(context);
 
-  // Field resolvers to handle database field to GraphQL field mapping
+      if (!content.trim()) throw new Error('Message content cannot be empty');
+
+      try {
+        const [receivers] = await context.db.execute('SELECT * FROM users WHERE id = ?', [receiverId]);
+        if (receivers.length === 0) throw new Error('Receiver not found');
+
+        const [result] = await context.db.execute(
+          'INSERT INTO messages (content, sender_id, receiver_id, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
+          [content, context.userId, receiverId, false]
+        );
+
+        const [messages] = await context.db.execute('SELECT * FROM messages WHERE id = ?', [result.insertId]);
+        return messages[0];
+      } catch (error) {
+        throw new Error('Failed to send message: ' + error.message);
+      }
+    },
+
+    markMessageAsRead: async (_, { messageId }, context) => {
+      await checkAuth(context);
+
+      try {
+        const [messages] = await context.db.execute('SELECT * FROM messages WHERE id = ?', [messageId]);
+        if (messages.length === 0) throw new Error('Message not found');
+
+        const message = messages[0];
+        if (message.receiver_id !== context.userId) throw new ForbiddenError('Not authorized to mark this message as read');
+
+        await context.db.execute('UPDATE messages SET is_read = TRUE WHERE id = ?', [messageId]);
+
+        const [updatedMessages] = await context.db.execute('SELECT * FROM messages WHERE id = ?', [messageId]);
+        return updatedMessages[0];
+      } catch (error) {
+        throw new Error('Failed to mark message as read: ' + error.message);
+      }
+    },
+  
   User: {
     id: (user) => user.id,
     username: (user) => user.username,
@@ -714,8 +870,8 @@ const resolvers = {
     createdAt: (user) => user.created_at ? new Date(user.created_at).toISOString() : null
   }
 };
+ 
 
-// Merge all resolvers
 const mergedResolvers = {
   Query: {
     ...resolvers.Query,

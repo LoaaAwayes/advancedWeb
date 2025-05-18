@@ -13,7 +13,6 @@ const Projects = () => {
   const [projectTasks, setProjectTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
-  // Query to get project details with tasks
   const [getProject, { loading: projectLoading }] = useLazyQuery(GET_PROJECT, {
     onCompleted: (data) => {
       if (data && data.getProject) {
@@ -28,7 +27,6 @@ const Projects = () => {
     }
   });
 
-  // Query to get project tasks
   const [getProjectTasks, { loading: tasksLoading }] = useLazyQuery(GET_PROJECT_TASKS, {
     onCompleted: (data) => {
       if (data && data.getProjectTasks) {
@@ -43,20 +41,16 @@ const Projects = () => {
   });
 
   useEffect(() => {
-    // Refresh data when component mounts
     refreshData();
   }, []);
 
-  // Function to handle project selection
   const handleSelectProject = (project) => {
     setLoadingTasks(true);
 
-    // Fetch detailed project information including tasks
     getProject({
       variables: { id: project.id }
     });
 
-    // Also fetch tasks separately in case they're not included in the project
     getProjectTasks({
       variables: { projectId: project.id }
     });
@@ -67,7 +61,6 @@ const Projects = () => {
       project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (project.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Convert status format to match the UI display (capitalize first letter)
     const projectStatus = project.status ?
       project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ') : '';
 
@@ -84,12 +77,10 @@ const Projects = () => {
 
   return (
     <div className="relative p-6">
-      {/* Page Title */}
       <div className="mb-6">
         <h2 className="text-[28px] font-bold text-[#2bb3ff]">Projects Overview</h2>
       </div>
 
-      {/* Filters + Add Button */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <Link to="/admin/projects/add">
           <button className="bg-[#007bff] hover:bg-[#0056b3] text-white font-semibold py-2 px-4 rounded">
@@ -131,7 +122,7 @@ const Projects = () => {
         </div>
       </div>
 
-      {/* Project Cards */}
+     
       <div className="flex flex-wrap gap-6">
         {filteredProjects.length === 0 ? (
           <p className="text-[#aaa]">No projects found.</p>

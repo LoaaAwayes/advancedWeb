@@ -28,10 +28,10 @@ function DashboardChart({ title }) {
       label: 'Count',
       data: [0, 0, 0, 0],
       backgroundColor: [
-        'rgba(54, 162, 235, 0.6)',     // Blue - Projects
-        'rgba(255, 206, 86, 0.6)',     // Yellow - Students
-        'rgba(75, 192, 192, 0.6)',     // Teal - Tasks
-        'rgba(153, 102, 255, 0.6)',    // Purple - Completed Projects
+        'rgba(54, 162, 235, 0.6)',     
+        'rgba(255, 206, 86, 0.6)',     
+        'rgba(75, 192, 192, 0.6)',    
+        'rgba(153, 102, 255, 0.6)',    
       ],
       borderColor: [
         '#36A2EB',
@@ -44,13 +44,11 @@ function DashboardChart({ title }) {
     }]
   });
 
-  // Query to get admin statistics
   const { data: statsData, loading } = useQuery(GET_ADMIN_STATS, {
     fetchPolicy: 'network-only',
-    pollInterval: 30000 // Refresh every 30 seconds
+    pollInterval: 30000 
   });
 
-  // Update chart data when admin stats are fetched
   useEffect(() => {
     if (statsData && statsData.getAdminStats) {
       const stats = statsData.getAdminStats;
@@ -70,7 +68,6 @@ function DashboardChart({ title }) {
     }
   }, [statsData]);
 
-  // Calculate max value for y-axis scale
   const maxValue = statsData?.getAdminStats ?
     Math.max(
       statsData.getAdminStats.totalProjects,
@@ -79,13 +76,12 @@ function DashboardChart({ title }) {
       statsData.getAdminStats.completedProjects
     ) : 10;
 
-  // Add 20% padding to the max value
   const yAxisMax = Math.ceil(maxValue * 1.2);
 
   const chartOptions = {
     responsive: true,
     animation: {
-      duration: 1000 // Add animation for better visual feedback
+      duration: 1000 
     },
     maintainAspectRatio: false,
     plugins: {
@@ -156,7 +152,7 @@ function DashboardChart({ title }) {
   };
 
   return (
-    <div className="h-[300px] w-[1100px]"> {/* Set fixed height and width */}
+    <div className="h-[300px] w-[1100px]"> 
       <Bar options={chartOptions} data={chartData} />
     </div>
   );

@@ -9,7 +9,6 @@ export function useRealTimeUpdates(callback) {
   const { loadData } = useData();
 
   useEffect(() => {
-    // Function to handle storage events
     const handleStorageChange = (e) => {
       if (['students', 'projects', 'tasks', 'messages'].includes(e.key)) {
         loadData();
@@ -19,10 +18,8 @@ export function useRealTimeUpdates(callback) {
       }
     };
 
-    // Add event listener for storage events
     window.addEventListener('storage', handleStorageChange);
 
-    // Custom event listener for internal updates
     const handleCustomEvent = () => {
       loadData();
       if (callback && typeof callback === 'function') {
@@ -31,7 +28,6 @@ export function useRealTimeUpdates(callback) {
     };
     window.addEventListener('dataUpdated', handleCustomEvent);
 
-    // Clean up event listeners
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('dataUpdated', handleCustomEvent);

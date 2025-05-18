@@ -16,29 +16,24 @@ const AddProject = () => {
     category: '',
     startDate: '',
     endDate: '',
-    status: 'in_progress', // Changed to match backend status format
+    status: 'in_progress', 
   });
 
-  // Query to get students
   const { data: studentsData, loading: loadingStudents } = useQuery(GET_STUDENTS, {
     fetchPolicy: 'network-only'
   });
 
-  // Mutations for creating project and assigning students
   const [createProjectMutation] = useMutation(CREATE_PROJECT);
   const [assignProjectMutation] = useMutation(ASSIGN_PROJECT);
 
   useEffect(() => {
-    // Update students list when data is fetched
     if (studentsData && studentsData.getUsers) {
-      // Filter to only include students
       const studentUsers = studentsData.getUsers.filter(user => user.role === 'student');
       setStudents(studentUsers);
     }
   }, [studentsData]);
 
   const handleSelectStudent = (student) => {
-    // Check if student is already selected by ID
     if (!selectedStudents.some(s => s.id === student.id)) {
       setSelectedStudents([...selectedStudents, student]);
     }
@@ -58,20 +53,16 @@ const AddProject = () => {
     setLoading(true);
 
     try {
-      // Create the project
       const { data } = await createProjectMutation({
         variables: {
           name: form.name,
           description: form.description,
-          // Note: We're not sending category, startDate, endDate as they're not in the GraphQL schema
-          // The backend will set default values
         }
       });
 
       if (data && data.createProject) {
         const projectId = data.createProject.id;
 
-        // Assign students to the project
         for (const student of selectedStudents) {
           await assignProjectMutation({
             variables: {
@@ -81,7 +72,6 @@ const AddProject = () => {
           });
         }
 
-        // Refresh data in the context
         refreshData();
 
         alert('Project added successfully!');
@@ -100,7 +90,6 @@ const AddProject = () => {
       <div className="w-full max-w-[800px] bg-[#232323] p-8 rounded-lg shadow-[0_0_40px_rgba(255,255,255,0.1)]">
         <h2 className="text-[28px] text-center text-[#2bb3ff] font-bold mb-8">Add New Project</h2>
         <form onSubmit={handleSubmit}>
-          {/* Project Title */}
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Project Title :</label>
             <input
@@ -113,7 +102,6 @@ const AddProject = () => {
             />
           </div>
 
-          {/* Description */}
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Project Description :</label>
             <textarea
@@ -125,7 +113,6 @@ const AddProject = () => {
             />
           </div>
 
-          {/* Student List */}
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Student List :</label>
             <div className="bg-[#333] border border-[#555] rounded p-4 max-h-[200px] overflow-y-auto">
@@ -147,7 +134,7 @@ const AddProject = () => {
             </div>
           </div>
 
-          {/* Selected Students */}
+         
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Selected Students</label>
             <div className="bg-[#333] p-3 border border-[#555] rounded">
@@ -167,7 +154,7 @@ const AddProject = () => {
             </div>
           </div>
 
-          {/* Category */}
+         
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Project Category :</label>
             <select
@@ -188,7 +175,7 @@ const AddProject = () => {
             </select>
           </div>
 
-          {/* Start & End Dates */}
+          
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Starting Date :</label>
             <input
@@ -213,7 +200,7 @@ const AddProject = () => {
             />
           </div>
 
-          {/* Status */}
+         
           <div className="mb-5">
             <label className="block text-[#ccc] font-bold mb-2">Project Status:</label>
             <select
