@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Task Management System
 
 A full-stack task management system with admin and student roles, project management,task managment , and messaging capabilities.
@@ -101,5 +101,4 @@ The GraphQL API provides the following operations:
 - CSS
 
 =======
-# advancedWeb
->>>>>>> e8378d3c0bac39e253507af68fa69db76c40b357
+
