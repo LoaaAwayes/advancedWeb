@@ -105,19 +105,16 @@ function Chat() {
       is_read: false
     };
 
-    // Store the pending message
+  
     pendingMessages.current[tempId] = message;
     
-    // Optimistic update
     setStudentMessages(prev => [...prev, message]);
 
-    // Send via socket
     socket.current.emit('message', {
       sender_id: message.sender_id,
       receiver_id: message.receiver_id,
       content: message.content
     }, (ack) => {
-      // Remove from pending regardless of success/failure
       delete pendingMessages.current[tempId];
 
       if (ack?.error) {
