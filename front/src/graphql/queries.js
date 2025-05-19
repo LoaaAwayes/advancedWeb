@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
 
-// --- Auth Mutations ---
+
 export const SIGNIN_MUTATION = gql`
   mutation SignIn($username: String!, $password: String!) {
     signin(username: $username, password: $password) {
@@ -26,7 +26,7 @@ export const SIGNUP_MUTATION = gql`
   }
 `;
 
-// --- User Queries ---
+
 export const ME_QUERY = gql`
   query Me {
     me {
@@ -50,7 +50,7 @@ export const GET_STUDENTS = gql`
   }
 `;
 
-// --- Admin Stats Query ---
+
 export const GET_ADMIN_STATS = gql`
   query GetAdminStats {
     getAdminStats {
@@ -68,7 +68,6 @@ export const GET_ADMIN_STATS = gql`
   }
 `;
 
-// --- Projects Queries ---
 export const GET_ALL_PROJECTS = gql`
   query GetAllProjects {
     getAllProjects {
@@ -145,7 +144,7 @@ export const GET_MY_PROJECTS = gql`
   }
 `;
 
-// --- Projects Mutations ---
+
 export const CREATE_PROJECT = gql`
   mutation CreateProject($name: String!, $description: String) {
     createProject(name: $name, description: $description) {
@@ -182,7 +181,7 @@ export const UPDATE_PROJECT_COMPLETION = gql`
   }
 `;
 
-// --- Tasks Queries ---
+
 export const GET_PROJECT_TASKS = gql`
   query GetProjectTasks($projectId: ID!) {
     getProjectTasks(projectId: $projectId) {
@@ -218,7 +217,7 @@ export const GET_MY_TASKS = gql`
   }
 `;
 
-// --- Tasks Mutations ---
+
 export const CREATE_TASK = gql`
   mutation CreateTask(
     $projectId: ID!,
@@ -246,7 +245,7 @@ export const CREATE_TASK = gql`
     }
   }
 `;
-// --- Tasks Mutations ---
+
 export const ASSIGN_TASK = gql`
   mutation AssignTaskToStudent($taskId: ID!, $studentId: ID!) {
     assignTaskToStudent(taskId: $taskId, studentId: $studentId) {
@@ -274,7 +273,6 @@ export const UPDATE_TASK_STATUS = gql`
 `;
 
 
-// --- Messages Queries ---
 export const GET_MY_MESSAGES = gql`
   query GetMyMessages($userId: ID!) {
     getMyMessages(userId: $userId) {
@@ -294,7 +292,6 @@ export const GET_MY_MESSAGES = gql`
   }
 `;
 
-// --- Messages Mutations ---
 export const SEND_MESSAGE = gql`
   mutation SendMessage($senderId: ID!, $receiverId: ID!, $content: String!) {
     sendMessage(senderId: $senderId, receiverId: $receiverId, content: $content) {
@@ -314,7 +311,6 @@ export const SEND_MESSAGE = gql`
   }
 `;
 
-// --- Message Subscription ---
 export const MESSAGE_SUBSCRIPTION = gql`
   subscription MessageSent($receiverId: ID!) {
     messageSent(receiverId: $receiverId) {
@@ -334,7 +330,6 @@ export const MESSAGE_SUBSCRIPTION = gql`
   }
 `;
 
-// --- Mark message read ---
 export const MARK_MESSAGE_AS_READ = gql`
   mutation MarkMessageAsRead($messageId: ID!) {
     markMessageAsRead(messageId: $messageId) {
@@ -344,7 +339,6 @@ export const MARK_MESSAGE_AS_READ = gql`
   }
 `;
 
-// --- Message Threads Query ---
 export const GET_MESSAGE_THREADS = gql`
   query GetMessageThreads {
     getMessageThreads {
@@ -365,7 +359,6 @@ export const GET_MESSAGE_THREADS = gql`
 `;
 
 
-// --- Student Dashboard ---
 export const GET_STUDENT_DASHBOARD = gql`
   query GetStudentDashboard {
     getStudentDashboard {
