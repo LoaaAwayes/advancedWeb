@@ -8,7 +8,6 @@ const messageResolvers = {
       }
 
       try {
-        // Start transaction for consistent data
         await context.db.execute('START TRANSACTION');
 
         const [userRows] = await context.db.execute(
@@ -28,14 +27,14 @@ const messageResolvers = {
           const userId = row.user_id;
           if (!userId) continue;
 
-          // Get user details
+     
           const [userDetails] = await context.db.execute(
             'SELECT * FROM users WHERE id = ?',
             [userId]
           );
           if (userDetails.length === 0) continue;
 
-          // Get last message
+        
           const [lastMessageRows] = await context.db.execute(
             `SELECT * FROM messages
              WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
@@ -43,7 +42,7 @@ const messageResolvers = {
             [context.userId, userId, userId, context.userId]
           );
 
-          // Get unread count
+         
           const [unreadCountRows] = await context.db.execute(
             `SELECT COUNT(*) AS count FROM messages
              WHERE sender_id = ? AND receiver_id = ? AND is_read = FALSE`,
@@ -57,10 +56,10 @@ const messageResolvers = {
           });
         }
 
-        // Commit transaction
+      
         await context.db.execute('COMMIT');
 
-        // Sort by most recent message
+       
         threads.sort((a, b) => {
           if (!a.lastMessage) return 1;
           if (!b.lastMessage) return -1;
@@ -122,7 +121,7 @@ const messageResolvers = {
           throw new Error(`User with ID ${receiverId} not found`);
         }
 
-        // Check roles (students can only message admins)
+      
         const [senderRows] = await context.db.execute(
           'SELECT role FROM users WHERE id = ?',
           [context.userId]
@@ -135,7 +134,7 @@ const messageResolvers = {
           throw new ForbiddenError('Students can only message admins');
         }
 
-        // Insert message with explicit timestamp
+      
         const [result] = await context.db.execute(
           'INSERT INTO messages (content, sender_id, receiver_id, is_read, created_at) VALUES (?, ?, ?, FALSE, NOW())',
           [content.trim(), context.userId, receiverId]
@@ -145,7 +144,7 @@ const messageResolvers = {
           throw new Error('Failed to insert message');
         }
 
-        // Get the full message with joins
+      
         const [messageRows] = await context.db.execute(
           `SELECT m.*, 
            u1.username as sender_name,
@@ -161,10 +160,10 @@ const messageResolvers = {
           throw new Error('Failed to retrieve created message');
         }
 
-        // Commit transaction
+     
         await context.db.execute('COMMIT');
 
-        // Format the response
+      
         const message = messageRows[0];
         return {
           ...message,
@@ -223,7 +222,7 @@ const messageResolvers = {
           [messageId]
         );
 
-        // Commit transaction
+        
         await context.db.execute('COMMIT');
 
         return updatedMessageRows[0];
@@ -241,7 +240,7 @@ const messageResolvers = {
       }
 
       try {
-        // Start transaction
+       
         await context.db.execute('START TRANSACTION');
 
         await context.db.execute(
@@ -254,7 +253,7 @@ const messageResolvers = {
           [senderId, context.userId]
         );
 
-        // Commit transaction
+  
         await context.db.execute('COMMIT');
 
         return updatedMessageRows;
