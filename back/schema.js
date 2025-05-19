@@ -476,7 +476,7 @@ const resolvers = {
     sendMessage: async (_, { receiverId, content }, context) => {
   await checkAuth(context);
   
-  // Validate input
+
   if (!content || !content.trim()) {
     throw new Error('Message content cannot be empty');
   }
@@ -486,7 +486,6 @@ const resolvers = {
   }
 
   try {
-    // Verify receiver exists
     const [receiver] = await context.db.execute(
       'SELECT id FROM users WHERE id = ?', 
       [receiverId]
@@ -496,11 +495,11 @@ const resolvers = {
       throw new Error('Receiver not found');
     }
 
-    // Start transaction
+    
     await context.db.execute('START TRANSACTION');
 
     try {
-      // Insert message with explicit timestamp
+      
       const [result] = await context.db.execute(
         `INSERT INTO messages 
          (content, sender_id, receiver_id, is_read, created_at) 
@@ -508,12 +507,12 @@ const resolvers = {
         [content.trim(), context.userId, receiverId]
       );
 
-      // Verify insertion
+    
       if (!result.insertId) {
         throw new Error('Failed to insert message');
       }
 
-      // Retrieve the full message with sender/receiver details
+     
       const [message] = await context.db.execute(
         `SELECT m.*, 
          u1.username as sender_name,
@@ -529,10 +528,10 @@ const resolvers = {
         throw new Error('Failed to retrieve created message');
       }
 
-      // Commit transaction
+  
       await context.db.execute('COMMIT');
 
-      // Format the response
+      
       const formattedMessage = {
         ...message[0],
         id: message[0].id.toString(),
@@ -551,7 +550,7 @@ const resolvers = {
       return formattedMessage;
 
     } catch (error) {
-      // Rollback on error
+     
       await context.db.execute('ROLLBACK');
       throw error;
     }
