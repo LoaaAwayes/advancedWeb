@@ -12,7 +12,7 @@ const pool = mysql.createPool({
 const wss = new WebSocketServer({ port: 8080 });
 
 wss.on('connection', async (socket, request) => {
-  // Extract token from query params: ws://host:8080/?token=xxx
+  
   const params = new URLSearchParams(request.url.replace('/?', ''));
   const token = params.get('token');
 
@@ -23,7 +23,7 @@ wss.on('connection', async (socket, request) => {
 
   try {
     const decoded = jwt.verify(token, 'your_jwt_secret');
-    // Attach user info to socket for later validation
+    
     socket.user = {
       id: decoded.id,
       role: decoded.role,
@@ -44,7 +44,7 @@ wss.on('connection', async (socket, request) => {
       return;
     }
 
-    // Validate message structure and types
+   
     const senderId = Number(msg.sender_id);
     const receiverId = Number(msg.receiver_id);
     const content = msg.content;
@@ -61,7 +61,7 @@ wss.on('connection', async (socket, request) => {
       return;
     }
 
-    // Verify sender_id matches authenticated user ID
+   
     if (senderId !== socket.user.id) {
       console.warn('Sender ID mismatch:', senderId, 'authenticated:', socket.user.id);
       socket.send(JSON.stringify({ error: 'Sender ID mismatch' }));
@@ -69,7 +69,7 @@ wss.on('connection', async (socket, request) => {
     }
 
     try {
-      // Insert message into DB
+     
       const now = new Date();
       const [result] = await pool.query(
         'INSERT INTO messages (content, sender_id, receiver_id, is_read, created_at) VALUES (?, ?, ?, ?, ?)',
@@ -87,7 +87,7 @@ wss.on('connection', async (socket, request) => {
         created_at: now,
       };
 
-      // Broadcast message to all clients: sender and receiver only
+      
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           if (
