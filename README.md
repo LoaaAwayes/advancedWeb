@@ -98,7 +98,7 @@ The GraphQL API provides the following operations:
 - Apollo Client
 - React Router
 - Chart.js
-- CSS
+- CSS Tailwind
 
 =======
 
