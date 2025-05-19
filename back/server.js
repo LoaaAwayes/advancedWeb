@@ -13,8 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const studentRoutes = require('./studentRoutes');
-app.use('/api/student', studentRoutes);
+
 
 const dbConfig = {
   host: 'localhost',
@@ -80,7 +79,7 @@ async function startServer() {
     },
   });
 
-  // Authentication middleware
+ 
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) {
@@ -98,14 +97,14 @@ async function startServer() {
   io.on('connection', (socket) => {
     console.log(`🟢 User connected: ${socket.user.userId} (${socket.user.role})`);
     
-    // Join user to their personal room
+   
     socket.join(`user_${socket.user.userId}`);
 
     socket.on('message', async (msg) => {
       try {
         console.log('🟡 Message received:', msg);
         
-        // Validate and convert message data
+       
         const senderId = Number(msg.sender_id);
         const receiverId = Number(msg.receiver_id);
         const content = String(msg.content).trim();
@@ -115,12 +114,12 @@ async function startServer() {
         if (!content) throw new Error('Message content is empty');
         if (content.length > 1000) throw new Error('Message too long');
 
-        // Verify sender matches authenticated user
+       
         if (senderId !== socket.user.userId) {
           throw new Error('Sender ID does not match authenticated user');
         }
 
-        // Check if receiver exists
+       
         const [receiver] = await connection.execute(
           'SELECT id FROM users WHERE id = ?',
           [receiverId]
@@ -135,7 +134,7 @@ async function startServer() {
           [content, senderId, receiverId, createdAt]
         );
 
-        // Get the full saved message with joined user data
+        
         const [savedMessage] = await connection.execute(
           `SELECT m.*, 
            u1.username as sender_name,
@@ -158,7 +157,7 @@ async function startServer() {
         io.to(`user_${senderId}`).emit('new_message', fullMessage);
         io.to(`user_${receiverId}`).emit('new_message', fullMessage);
 
-        // Send acknowledgement to sender
+      
         socket.emit('message_ack', { 
           status: 'success',
           messageId: result.insertId 
