@@ -56,7 +56,6 @@ const taskResolvers = {
     throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
   }
 
-  // Check if project exists
   const [projectRows] = await context.db.execute('SELECT * FROM projects WHERE id = ?', [projectId]);
   if (projectRows.length === 0) {
     throw new Error(`Project with ID ${projectId} not found.`);
@@ -236,7 +235,6 @@ const taskResolvers = {
   }
 };
 
-// Helpers
 function mapStatus(status) {
   switch (status) {
     case 'todo': return 'pending';
