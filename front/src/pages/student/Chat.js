@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-// Style constants
 const containerStyle = {
   margin: '40px auto',
   padding: '20px',
@@ -91,20 +90,17 @@ function Chat() {
   useEffect(() => {
     if (!userId || !token) return;
 
-    // Initialize socket connection
     socket.current = io('http://localhost:3002', {
       auth: { token },
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
 
-    // Socket event handlers
     socket.current.on('connect', () => {
       console.log('✅ Connected to chat server');
     });
 
     socket.current.on('new_message', (message) => {
-      // Skip messages we sent (they're already in state via optimistic update)
       if (Number(message.sender_id) === Number(userId)) return;
       
       const isRelevant = (
@@ -126,7 +122,6 @@ function Chat() {
       console.log('🔴 Disconnected from chat server');
     });
 
-    // Cleanup on unmount
     return () => {
       if (socket.current) {
         socket.current.disconnect();
@@ -147,7 +142,6 @@ function Chat() {
       content: newMessage.trim()
     };
 
-    // Generate a temporary ID for the optimistic message
     const tempId = `temp_${Date.now()}`;
     
     setMessages(prev => [
