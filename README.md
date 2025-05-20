@@ -30,7 +30,7 @@ A full-stack task management system with admin and student roles, project manage
       The frontend application will be available at http://localhost:3000
 --> 
 * The URL For the Demo : https://drive.google.com/file/d/1UlFgs8qzLJO34zyLHVpSnuwsO8KcR8zH/view?usp=sharing
-* he URL For the Report : https://drive.google.com/file/d/1cdqEx721quVvCYlejxyL1B7ZYJTt0KlM/view?usp=sharing
+* The URL For the Report : https://drive.google.com/file/d/1cdqEx721quVvCYlejxyL1B7ZYJTt0KlM/view?usp=sharing
 ### Manual Setup
 
 #### 1. Database Setup
